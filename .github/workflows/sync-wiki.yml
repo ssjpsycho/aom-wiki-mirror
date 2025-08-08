@@ -27,7 +27,8 @@ jobs:
       - name: Run mirror script
         run: |
           chmod +x scripts/sync_wiki.sh
-          ./scripts/sync_wiki.sh site/wiki
+          ./scripts/sync_wiki.sh site/wik
+           continue-on-error: false  # The script handles non-critical errors itself
 
       - name: Commit and push changes
         run: |
