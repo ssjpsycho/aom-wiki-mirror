@@ -1,0 +1,43 @@
+name: Sync Allies of Majesty Wiki
+
+on:
+  schedule:
+    - cron: '17 3 * * *' # Daily at 03:17 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-wiki
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y rsync wget
+
+      - name: Run mirror script
+        run: |
+          chmod +x scripts/sync_wiki.sh
+          ./scripts/sync_wiki.sh site/wiki
+
+      - name: Commit and push changes
+        run: |
+          set -e
+          if [ -n "$(git status --porcelain)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -A
+            git commit -m "chore(sync): mirror wiki.alliesofmajesty.com $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+            git push
+          else
+            echo "No changes to commit."
+          fi
