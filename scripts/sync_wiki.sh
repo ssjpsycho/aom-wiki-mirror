@@ -30,16 +30,24 @@ wget \
 status=${PIPESTATUS[0]}
 set -e
 
-# Ignore exit code 8 (404 errors) but fail for other errors
+# Log any 404s as workflow warnings for visibility
+grep -F "ERROR 404" wget.log | sed 's/^/::warning::/' || true
+
+# If wget failed for reasons other than 8 (404s), fail the job
 if [ "$status" -ne 0 ] && [ "$status" -ne 8 ]; then
   echo "wget failed with exit code $status" >&2
   exit "$status"
 fi
 
-# Log 404s as warnings
-grep -F "ERROR 404" wget.log | sed 's/^/::warning::/' || true
+SRC_DIR="$TMP_DIR/wiki.alliesofmajesty.com"
 
-echo "Syncing into repository directory: $OUT_DIR"
-rsync -a --delete "$SRC_DIR"/ "$OUT_DIR"/
+if [ ! -d "$SRC_DIR" ]; then
+  echo "::warning::Expected source directory not found: $SRC_DIR. Skipping rsync."
+else
+  echo "Syncing into repository directory: $OUT_DIR"
+  rsync -a --delete "$SRC_DIR"/ "$OUT_DIR"/
+  echo "Sync complete."
+fi
 
-echo "Sync complete."
+# Always exit 0 for successful sync or only 404s
+exit 0
